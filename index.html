@@ -1,1 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+    <meta charset="UTF-8">
+    <title>Karma Gate Wi-Fi Dashboard</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #121212;
+            color: #00ffcc;
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .card {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            display: inline-block;
+            width: 350px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+        }
+
+        .alert {
+            color: #ff3333;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        button {
+            background: #00ffcc;
+            border: none;
+            padding: 10px 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            border-radius: 5px;
+            color: #121212;
+        }
+
+        button:hover {
+            background: #00b386;
+            color: white;
+        }
+
+        .slider-container {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #333;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h2>KARMA ENFORCER (WiFi)</h2>
+        <hr>
+        <p><strong>Karma Score:</strong> <span id="karma">100.0</span></p>
+        <p><strong>Distance:</strong> <span id="dist">0.0</span> cm</p>
+        <p><strong>Penalty Level:</strong> <span id="lvl">0</span></p>
+        <p><strong>High Beam Light:</strong> <span id="light">No</span></p>
+        <h3 id="status" style="color: #00ffcc;">SYSTEM NORMAL</h3>
+
+        <div class="slider-container">
+            <p><strong>Manual Level Override (Demo Control)</strong></p>
+            <input type="range" id="levelSlider" min="0" max="6" value="0" onchange="forceLevel(this.value)"
+                oninput="document.getElementById('sliderVal').innerText = this.value">
+            <p>Target Level: <span id="sliderVal">0</span></p>
+        </div>
+
+        <button onclick="resetKarma()">RESET DRIVER KARMA</button>
+    </div>
+
+    <!-- Trolling Sound Effect Audio Element -->
+    <audio id="trollSound" src="https://www.myinstants.com/media/sounds/emotional-damage-meme.mp3"></audio>
+
+    <script>
+        // UPDATE THIS IP TO MATCH YOUR ESP32 OLED
+        const espIp = "192.168.1.162";
+        const ws = new WebSocket('ws://' + espIp + ':81/');
+        let previousLevel = 0;
+
+        ws.onmessage = function (event) {
+            const parts = event.data.split(',');
+            let dataObj = {};
+            parts.forEach(part => {
+                let kv = part.split(':');
+                dataObj[kv[0]] = kv[1];
+            });
+
+            if (dataObj.KARMA) document.getElementById('karma').innerText = dataObj.KARMA;
+            if (dataObj.DIST) document.getElementById('dist').innerText = dataObj.DIST;
+            if (dataObj.LVL) {
+                let lvl = parseInt(dataObj.LVL);
+                document.getElementById('lvl').innerText = lvl;
+
+                // Sync the manual slider with the actual level if it changes organically
+                document.getElementById('levelSlider').value = lvl;
+                document.getElementById('sliderVal').innerText = lvl;
+
+                if (lvl > previousLevel && lvl > 0) {
+                    document.getElementById('trollSound').play().catch(e => console.log("Audio play blocked by browser until user interaction."));
+                }
+                previousLevel = lvl;
+
+                let statusEl = document.getElementById('status');
+                if (lvl >= 5) {
+                    statusEl.innerText = "TOTAL LOCKOUT!";
+                    statusEl.className = "alert";
+                } else if (lvl > 0) {
+                    statusEl.innerText = "PUNISHING OFFENDER...";
+                    statusEl.className = "alert";
+                } else {
+                    statusEl.innerText = "SYSTEM NORMAL";
+                    statusEl.className = "";
+                }
+            }
+            if (dataObj.LIGHT) document.getElementById('light').innerText = (dataObj.LIGHT === "1") ? "DETECTED 🚨" : "None";
+        };
+
+        function resetKarma() {
+            ws.send("SET_KARMA:0.0");
+        }
+
+        // Translates the slider level (0-6) into the exact karma score needed to trigger it
+        function forceLevel(level) {
+            let targetKarma = 0.0;
+            switch (parseInt(level)) {
+                case 0: targetKarma = 0.0; break;
+                case 1: targetKarma = -17.0; break;
+                case 2: targetKarma = -34.0; break;
+                case 3: targetKarma = -51.0; break;
+                case 4: targetKarma = -67.0; break;
+                case 5: targetKarma = -84.0; break;
+                case 6: targetKarma = -100.0; break;
+            }
+            ws.send("SET_KARMA:" + targetKarma);
+        }
+    </script>
+</body>
+
+</html>
