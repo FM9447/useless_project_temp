@@ -64,7 +64,6 @@ graph TD
     %% Hardware Inputs
     LDR[LDR Light Sensor] -->|Detects High Beam| ESP32[ESP32 Main Controller]
     Sonar[HC-SR04 Ultrasonic] -->|Proximity < 15cm| ESP32
-    MQ2[MQ-2 Gas Sensor] -->|Exhaust Fumes| ESP32
     Btn[Reset Button] -->|Manual Override| ESP32
 
     %% Hardware Outputs
@@ -98,7 +97,6 @@ image\Screenshot 2026-09-13 054256.png
 | GPIO 19 | Servo Motor | PWM / Signal | 5V Pwr / 3.3V Sig |
 | GPIO 4 | WS2812B LEDs | DIN (Data In) | 5V |
 | GPIO 32 | LDR (Photoresistor) | AO (Analog Out) | 3.3V |
-| GPIO 34 | MQ-2 Gas Sensor | AO (Analog Out) | 5V |
 | GPIO 26 | Piezo Buzzer | Signal (+) | 3.3V |
 | GPIO 27 | Reset Button | Terminal 1 | Active Low |
 
